@@ -67,10 +67,9 @@ public class MontePicoActivity extends Activity {
 
 	public void takePhoto(View view) {
 		//define the file-name to save photo taken by Camera activity
-		String fileName = "new-photo-name.jpg";
-		//create parameters for Intent with filename
+	
 		ContentValues values = new ContentValues();
-		values.put(MediaStore.Images.Media.TITLE, fileName);
+		values.put(MediaStore.Images.Media.TITLE, "MontePICO");
 		values.put(MediaStore.Images.Media.DESCRIPTION,"Image capture by camera");
 		//imageUri is the current activity attribute, define and save it for later usage (also in onSaveInstanceState)
 		imageUri = getContentResolver().insert(
@@ -99,6 +98,8 @@ public class MontePicoActivity extends Activity {
 		}
 		if (requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null != data) {
 			Uri selectedImage = data.getData();
+			imageFile = convertImageUriToFile(selectedImage, this);
+
 			String[] filePathColumn = { MediaStore.Images.Media.DATA };
 
 			Cursor cursor = getContentResolver().query(selectedImage,
@@ -113,7 +114,6 @@ public class MontePicoActivity extends Activity {
 			imageView.setImageBitmap(BitmapFactory.decodeFile(picturePath));
 		}
 		
-//		doFileUpload();
 		try {
 			executeMultipartPost();
 		} catch (Exception e) {
@@ -125,19 +125,28 @@ public class MontePicoActivity extends Activity {
 	
 	public void executeMultipartPost() throws Exception {
 		try {
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
 	
-			byte[] data = bos.toByteArray();
 			HttpClient httpClient = new DefaultHttpClient();
 			HttpPost postRequest = new HttpPost(
 					"http://192.168.1.115:4567/upload");
-			// ByteArrayBody bab = new ByteArrayBody(data, imageFile.getPath());
-			 //File file= new File("/mnt/sdcard/forest.png");
+			
+			Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getPath());
+			Bitmap bmpCompressed = Bitmap.createScaledBitmap(bitmap, 640, 480, true);
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+			// CompressFormat set up to JPG, you can change to PNG or whatever you want;
+
+			bitmap.compress(CompressFormat.JPEG, 50, bos);
+			
+			byte[] data = bos.toByteArray();
+
 			 FileBody bin = new FileBody(imageFile);
 			
 			MultipartEntity reqEntity = new MultipartEntity(
 					HttpMultipartMode.BROWSER_COMPATIBLE);
-			reqEntity.addPart("file", bin);
+			
+			reqEntity.addPart("file", new ByteArrayBody(data, imageFile.getName()));
+
 			reqEntity.addPart("photoCaption", new StringBody("XXX MONTEPICO"));
 			postRequest.setEntity(reqEntity);
 			HttpResponse response = httpClient.execute(postRequest);
