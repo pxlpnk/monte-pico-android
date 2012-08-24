@@ -23,12 +23,14 @@
             android:layout_width="158dp"
             android:layout_height="wrap_content"
             android:onClick="takePhoto"
+            android:layout_weight="0" 
             android:text="@string/camera" />
 
         <Button
             android:id="@+id/filemanager"
             android:layout_width="164dp"
             android:layout_height="wrap_content"
+            android:layout_weight="0" 
             android:text="@string/filemanager" />
     </LinearLayout>
 
