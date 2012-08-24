@@ -4,5 +4,7 @@
     <string name="hello">Hello World, MontePicoActivity!</string>
     <string name="app_name">MontePico</string>
     <string name="button_send">Send</string>
+    <string name="filemanager">Filemanager</string>
+    <string name="camera">Camera</string>
 
 </resources>
