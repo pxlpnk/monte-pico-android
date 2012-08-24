@@ -1,15 +1,38 @@
 package at.postd;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.ByteArrayBody;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.database.Cursor;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -27,18 +50,18 @@ public class MontePicoActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
-		   Button buttonLoadImage = (Button) findViewById(R.id.filemanager);
-	        buttonLoadImage.setOnClickListener(new View.OnClickListener() {
-				
-				public void onClick(View arg0) {
-					
-					Intent i = new Intent(
-							Intent.ACTION_PICK,
-							android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-					
-					startActivityForResult(i, RESULT_LOAD_IMAGE);
-				}
-			});
+		Button buttonLoadImage = (Button) findViewById(R.id.filemanager);
+		buttonLoadImage.setOnClickListener(new View.OnClickListener() {
+
+			public void onClick(View arg0) {
+
+				Intent i = new Intent(
+						Intent.ACTION_PICK,
+						android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+
+				startActivityForResult(i, RESULT_LOAD_IMAGE);
+			}
+		});
 	}
 
 
@@ -67,6 +90,7 @@ public class MontePicoActivity extends Activity {
 				imageFile = convertImageUriToFile(imageUri, this);
 				ImageView imageView = (ImageView) findViewById(R.id.imageView1);
 				imageView.setImageBitmap(BitmapFactory.decodeFile(imageFile.getPath()));
+				
 			} else if (resultCode == RESULT_CANCELED) {
 				Toast.makeText(this, "Picture was not taken", Toast.LENGTH_SHORT);
 			} else {
@@ -84,12 +108,52 @@ public class MontePicoActivity extends Activity {
 			int columnIndex = cursor.getColumnIndex(filePathColumn[0]);
 			String picturePath = cursor.getString(columnIndex);
 			cursor.close();
-			
+
 			ImageView imageView = (ImageView) findViewById(R.id.imageView1);
 			imageView.setImageBitmap(BitmapFactory.decodeFile(picturePath));
-		
 		}
-    
+		
+//		doFileUpload();
+		try {
+			executeMultipartPost();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
+	public void executeMultipartPost() throws Exception {
+		try {
+			ByteArrayOutputStream bos = new ByteArrayOutputStream();
+	
+			byte[] data = bos.toByteArray();
+			HttpClient httpClient = new DefaultHttpClient();
+			HttpPost postRequest = new HttpPost(
+					"http://192.168.1.115:4567/upload");
+			// ByteArrayBody bab = new ByteArrayBody(data, imageFile.getPath());
+			 //File file= new File("/mnt/sdcard/forest.png");
+			 FileBody bin = new FileBody(imageFile);
+			
+			MultipartEntity reqEntity = new MultipartEntity(
+					HttpMultipartMode.BROWSER_COMPATIBLE);
+			reqEntity.addPart("file", bin);
+			reqEntity.addPart("photoCaption", new StringBody("XXX MONTEPICO"));
+			postRequest.setEntity(reqEntity);
+			HttpResponse response = httpClient.execute(postRequest);
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					response.getEntity().getContent(), "UTF-8"));
+			String sResponse;
+			StringBuilder s = new StringBuilder();
+
+			while ((sResponse = reader.readLine()) != null) {
+				s = s.append(sResponse);
+			}
+			System.out.println("Response: " + s);
+		} catch (Exception e) {
+			// handle exception here
+			Log.e(e.getClass().getName(), e.getMessage());
+		}
 	}
 
 	public static File convertImageUriToFile (Uri imageUri, Activity activity)  {
@@ -115,6 +179,90 @@ public class MontePicoActivity extends Activity {
 		}
 	}
 }
+
+//	private void doFileUpload(){
+//		HttpURLConnection conn = null;
+//		DataOutputStream dos = null;
+//		DataInputStream inStream = null;
+//		String lineEnd = "rn";
+//		String twoHyphens = "--";
+//		String boundary =  "*****";
+//		int bytesRead, bytesAvailable, bufferSize;
+//		byte[] buffer;
+//		int maxBufferSize = 1*1024*1024;
+//		String responseFromServer = "";
+//		String urlString = "http://192.168.1.115:4567/upload";
+//		try
+//		{
+//			//------------------ CLIENT REQUEST
+//			FileInputStream fileInputStream = new FileInputStream(new File(imageFile.getAbsolutePath()));
+//			// open a URL connection to the Servlet
+//			URL url = new URL(urlString);
+//			
+//			// Open a HTTP connection to the URL
+//			conn = (HttpURLConnection) url.openConnection();
+//			// Allow Inputs
+//			conn.setDoInput(true);
+//			// Allow Outputs
+//			conn.setDoOutput(true);
+//			// Don't use a cached copy.
+//			conn.setUseCaches(false);
+//			// Use a post method.
+//			conn.setRequestMethod("POST");
+//			conn.setRequestProperty("Connection", "Keep-Alive");
+//			conn.setRequestProperty("Content-Type", "multipart/form-data;boundary="+boundary);
+//			dos = new DataOutputStream( conn.getOutputStream() );
+//			dos.writeBytes(twoHyphens + boundary + lineEnd);
+//			dos.writeBytes("Content-Disposition: form-data; name=\"uploadedfile\";filename=\"" + imageFile.getPath() + "\"" + lineEnd);
+//			dos.writeBytes(lineEnd);
+//			// create a buffer of maximum size
+//			bytesAvailable = fileInputStream.available();
+//			bufferSize = Math.min(bytesAvailable, maxBufferSize);
+//			buffer = new byte[bufferSize];
+//			// read file and write it into form...
+//			bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+//			while (bytesRead > 0)
+//			{
+//				dos.write(buffer, 0, bufferSize);
+//				bytesAvailable = fileInputStream.available();
+//				bufferSize = Math.min(bytesAvailable, maxBufferSize);
+//				bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+//			}
+//			// send multipart form data necesssary after file data...
+//			dos.writeBytes(lineEnd);
+//			dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+//			// close streams
+//			Log.e("Debug","File is written");
+//			fileInputStream.close();
+//			dos.flush();
+//			dos.close();
+//		}
+//		catch (MalformedURLException ex)
+//		{
+//			Log.e("Debug", "error: " + ex.getMessage(), ex);
+//		}
+//		catch (IOException ioe)
+//		{
+//			Log.e("Debug", "error: " + ioe.getMessage(), ioe);
+//		}
+//		//------------------ read the SERVER RESPONSE
+//		try {
+//			inStream = new DataInputStream ( conn.getInputStream() );
+//			String str;
+//
+//			while (( str = inStream.readLine()) != null)
+//			{
+//				Log.e("Debug","Server Response "+str);
+//			}
+//			inStream.close();
+//
+//		}
+//		catch (IOException ioex){
+//			Log.e("Debug", "error: " + ioex.getMessage(), ioex);
+//		}
+//	}
+//}
+
 //
 //	private static final String MEDIA_TYPE_IMAGE = "jpg";
 //	
@@ -201,37 +349,7 @@ public class MontePicoActivity extends Activity {
 //
 //	}
 //	
-//	public void executeMultipartPost() throws Exception {
-//		try {
-//			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-//			bm.compress(CompressFormat.JPEG, 75, bos);
-//			byte[] data = bos.toByteArray();
-//			HttpClient httpClient = new DefaultHttpClient();
-//			HttpPost postRequest = new HttpPost(
-//					"http://10.0.2.2/cfc/iphoneWebservice.cfc?returnformat=json&amp;method=testUpload");
-//			ByteArrayBody bab = new ByteArrayBody(data, "forest.jpg");
-//			// File file= new File("/mnt/sdcard/forest.png");
-//			// FileBody bin = new FileBody(file);
-//			MultipartEntity reqEntity = new MultipartEntity(
-//					HttpMultipartMode.BROWSER_COMPATIBLE);
-//			reqEntity.addPart("uploaded", bab);
-//			reqEntity.addPart("photoCaption", new StringBody("sfsdfsdf"));
-//			postRequest.setEntity(reqEntity);
-//			HttpResponse response = httpClient.execute(postRequest);
-//			BufferedReader reader = new BufferedReader(new InputStreamReader(
-//					response.getEntity().getContent(), "UTF-8"));
-//			String sResponse;
-//			StringBuilder s = new StringBuilder();
-//
-//			while ((sResponse = reader.readLine()) != null) {
-//				s = s.append(sResponse);
-//			}
-//			System.out.println("Response: " + s);
-//		} catch (Exception e) {
-//			// handle exception here
-//			Log.e(e.getClass().getName(), e.getMessage());
-//		}
-//	}
+
 //
 //	
 //}
