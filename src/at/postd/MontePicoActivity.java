@@ -24,26 +24,31 @@ import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.Toast;
 
 public class MontePicoActivity extends Activity {
 	private File imageFile;
 	private Uri imageUri;
+	private ProgressBar progress;
 	private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
 	private static int RESULT_LOAD_IMAGE = 1;
-	private static String API_URI = "192.168.1.115:4567/upload";
+	//	private static String API_URI = "192.168.1.115:4567/upload";
+	private static String API_URI = "http://an-ti.eu:4567/upload";
 
 
 	/** Called when the activity is first created. */
@@ -52,6 +57,8 @@ public class MontePicoActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 		Button buttonLoadImage = (Button) findViewById(R.id.filemanager);
+
+
 		buttonLoadImage.setOnClickListener(new View.OnClickListener() {
 
 			public void onClick(View arg0) {
@@ -68,7 +75,7 @@ public class MontePicoActivity extends Activity {
 
 	public void takePhoto(View view) {
 		//define the file-name to save photo taken by Camera activity
-	
+
 		ContentValues values = new ContentValues();
 		values.put(MediaStore.Images.Media.TITLE, "MontePICO");
 		values.put(MediaStore.Images.Media.DESCRIPTION,"Image capture by camera");
@@ -90,7 +97,8 @@ public class MontePicoActivity extends Activity {
 				imageFile = convertImageUriToFile(imageUri, this);
 				ImageView imageView = (ImageView) findViewById(R.id.imageView1);
 				imageView.setImageBitmap(BitmapFactory.decodeFile(imageFile.getPath()));
-				
+				UploadPictureTask task = new UploadPictureTask();
+				task.execute("");
 			} else if (resultCode == RESULT_CANCELED) {
 				Toast.makeText(this, "Picture was not taken", Toast.LENGTH_SHORT);
 			} else {
@@ -113,58 +121,12 @@ public class MontePicoActivity extends Activity {
 
 			ImageView imageView = (ImageView) findViewById(R.id.imageView1);
 			imageView.setImageBitmap(BitmapFactory.decodeFile(picturePath));
-		}
-		
-		try {
-			executeMultipartPost();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
 
-	}
-	
-	public void executeMultipartPost() throws Exception {
-		try {
-	
-			HttpClient httpClient = new DefaultHttpClient();
-			HttpPost postRequest = new HttpPost(
-					API_URI);
-			
-			Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getPath());
-			Bitmap bmpCompressed = Bitmap.createScaledBitmap(bitmap, 640, 480, true);
-			ByteArrayOutputStream bos = new ByteArrayOutputStream();
-
-			// CompressFormat set up to JPG, you can change to PNG or whatever you want;
-
-			bitmap.compress(CompressFormat.JPEG, 50, bos);
-			
-			byte[] data = bos.toByteArray();
-
-			 FileBody bin = new FileBody(imageFile);
-			
-			MultipartEntity reqEntity = new MultipartEntity(
-					HttpMultipartMode.BROWSER_COMPATIBLE);
-			
-			reqEntity.addPart("file", new ByteArrayBody(data, imageFile.getName()));
-
-			reqEntity.addPart("photoCaption", new StringBody("XXX MONTEPICO"));
-			postRequest.setEntity(reqEntity);
-			HttpResponse response = httpClient.execute(postRequest);
-			BufferedReader reader = new BufferedReader(new InputStreamReader(
-					response.getEntity().getContent(), "UTF-8"));
-			String sResponse;
-			StringBuilder s = new StringBuilder();
-
-			while ((sResponse = reader.readLine()) != null) {
-				s = s.append(sResponse);
-			}
-			System.out.println("Response: " + s);
-		} catch (Exception e) {
-			// handle exception here
-			Log.e(e.getClass().getName(), e.getMessage());
+			UploadPictureTask task = new UploadPictureTask();
+			task.execute("");
 		}
 	}
+
 
 	public static File convertImageUriToFile (Uri imageUri, Activity activity)  {
 		Cursor cursor = null;
@@ -186,6 +148,60 @@ public class MontePicoActivity extends Activity {
 			if (cursor != null) {
 				cursor.close();
 			}
+		}
+	}
+
+	private class UploadPictureTask extends AsyncTask<String, Void, String> {
+
+		@Override
+		protected String doInBackground(String... parms) {
+
+			try {
+
+				HttpClient httpClient = new DefaultHttpClient();
+				HttpPost postRequest = new HttpPost(
+						API_URI);
+
+				Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getPath());
+				Bitmap bmpCompressed = Bitmap.createScaledBitmap(bitmap, 640, 480, true);
+				ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+				// CompressFormat set up to JPG, you can change to PNG or whatever you want;
+
+				bitmap.compress(CompressFormat.JPEG, 50, bos);
+
+				byte[] data = bos.toByteArray();
+
+				FileBody bin = new FileBody(imageFile);
+
+				MultipartEntity reqEntity = new MultipartEntity(
+						HttpMultipartMode.BROWSER_COMPATIBLE);
+
+				reqEntity.addPart("file", new ByteArrayBody(data, imageFile.getName()));
+
+				reqEntity.addPart("photoCaption", new StringBody("XXX MONTEPICO"));
+				postRequest.setEntity(reqEntity);
+				HttpResponse response = httpClient.execute(postRequest);
+				BufferedReader reader = new BufferedReader(new InputStreamReader(
+						response.getEntity().getContent(), "UTF-8"));
+				String sResponse;
+				StringBuilder s = new StringBuilder();
+
+				while ((sResponse = reader.readLine()) != null) {
+					s = s.append(sResponse);
+				}
+				System.out.println("Response: " + s);
+			} catch (Exception e) {
+				// handle exception here
+				Log.e(e.getClass().getName(), e.getMessage());
+			}
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(String result) {
+			Context context = getApplicationContext();	
+			Toast.makeText(context,"Upload Successfull!", Toast.LENGTH_SHORT);				
 		}
 	}
 }

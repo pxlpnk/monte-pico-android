@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:baselineAligned="true"
     android:orientation="vertical" >
@@ -20,17 +20,15 @@
 
         <Button
             android:id="@+id/camera"
-            android:layout_width="158dp"
+            android:layout_width="183dp"
             android:layout_height="wrap_content"
             android:onClick="takePhoto"
-            android:layout_weight="0" 
             android:text="@string/camera" />
 
         <Button
             android:id="@+id/filemanager"
-            android:layout_width="164dp"
+            android:layout_width="172dp"
             android:layout_height="wrap_content"
-            android:layout_weight="0" 
             android:text="@string/filemanager" />
     </LinearLayout>
 
