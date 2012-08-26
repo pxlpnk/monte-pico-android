@@ -1,16 +1,17 @@
 package at.postd;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -21,6 +22,7 @@ import org.apache.http.entity.mime.content.ByteArrayBody;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.ByteArrayBuffer;
 
 import android.app.Activity;
 import android.content.ContentValues;
@@ -47,8 +49,8 @@ public class MontePicoActivity extends Activity {
 	private ProgressBar progress;
 	private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
 	private static int RESULT_LOAD_IMAGE = 1;
-	//	private static String API_URI = "192.168.1.115:4567/upload";
-	private static String API_URI = "http://an-ti.eu:4567/upload";
+//	private static String API_URI = "http://192.168.1.115:4567";
+		private static String API_URI = "http://an-ti.eu:4567";
 
 
 	/** Called when the activity is first created. */
@@ -56,6 +58,16 @@ public class MontePicoActivity extends Activity {
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
+
+		Button downloadRandomImageButton = (Button) findViewById(R.id.random);
+		downloadRandomImageButton.setOnClickListener(new View.OnClickListener() {
+
+			public void onClick(View v) {
+				downloadFile(API_URI+"/random");				
+			}
+		});
+
+
 		Button buttonLoadImage = (Button) findViewById(R.id.filemanager);
 
 
@@ -72,6 +84,39 @@ public class MontePicoActivity extends Activity {
 		});
 	}
 
+	
+	Bitmap bmImg;
+	void downloadFile(String fileUrl){
+		URL myFileUrl =null; 
+		try {
+			myFileUrl= new URL(fileUrl);
+		} catch (MalformedURLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		try {
+			HttpURLConnection conn= (HttpURLConnection)myFileUrl.openConnection();
+			conn.setDoInput(true);
+			conn.connect();
+			int length = conn.getContentLength();
+			int[] bitmapData =new int[length];
+			byte[] bitmapData2 =new byte[length];
+			InputStream is = conn.getInputStream();
+
+			bmImg = BitmapFactory.decodeStream(is);
+			
+			ImageView imageView = (ImageView) findViewById(R.id.imageView1);
+							
+			imageView.setImageBitmap(bmImg);
+		} catch (IOException e) {
+			e.printStackTrace();
+			System.out.println(e.getMessage());
+		} catch (Exception e ) {
+			e.printStackTrace();
+			System.out.println(e.getMessage());
+		}
+	}
+	
 
 	public void takePhoto(View view) {
 		//define the file-name to save photo taken by Camera activity
@@ -151,6 +196,7 @@ public class MontePicoActivity extends Activity {
 		}
 	}
 
+
 	private class UploadPictureTask extends AsyncTask<String, Void, String> {
 
 		@Override
@@ -160,7 +206,7 @@ public class MontePicoActivity extends Activity {
 
 				HttpClient httpClient = new DefaultHttpClient();
 				HttpPost postRequest = new HttpPost(
-						API_URI);
+						API_URI+"/upload");
 
 				Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getPath());
 				Bitmap bmpCompressed = Bitmap.createScaledBitmap(bitmap, 640, 480, true);
