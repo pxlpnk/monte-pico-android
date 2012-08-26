@@ -46,7 +46,6 @@ import android.widget.Toast;
 public class MontePicoActivity extends Activity {
 	private File imageFile;
 	private Uri imageUri;
-	private ProgressBar progress;
 	private static final int CAPTURE_IMAGE_ACTIVITY_REQUEST_CODE = 100;
 	private static int RESULT_LOAD_IMAGE = 1;
 //	private static String API_URI = "http://192.168.1.115:4567";
@@ -56,6 +55,7 @@ public class MontePicoActivity extends Activity {
 	/** Called when the activity is first created. */
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
+		Log.i("montepico","starting");
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.main);
 
@@ -67,10 +67,7 @@ public class MontePicoActivity extends Activity {
 			}
 		});
 
-
 		Button buttonLoadImage = (Button) findViewById(R.id.filemanager);
-
-
 		buttonLoadImage.setOnClickListener(new View.OnClickListener() {
 
 			public void onClick(View arg0) {
@@ -86,21 +83,16 @@ public class MontePicoActivity extends Activity {
 
 	
 	Bitmap bmImg;
+
 	void downloadFile(String fileUrl){
 		URL myFileUrl =null; 
+		
 		try {
 			myFileUrl= new URL(fileUrl);
-		} catch (MalformedURLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		try {
-			HttpURLConnection conn= (HttpURLConnection)myFileUrl.openConnection();
+			HttpURLConnection conn= (HttpURLConnection) myFileUrl.openConnection();
 			conn.setDoInput(true);
 			conn.connect();
-			int length = conn.getContentLength();
-			int[] bitmapData =new int[length];
-			byte[] bitmapData2 =new byte[length];
+			
 			InputStream is = conn.getInputStream();
 
 			bmImg = BitmapFactory.decodeStream(is);
@@ -111,10 +103,7 @@ public class MontePicoActivity extends Activity {
 		} catch (IOException e) {
 			e.printStackTrace();
 			System.out.println(e.getMessage());
-		} catch (Exception e ) {
-			e.printStackTrace();
-			System.out.println(e.getMessage());
-		}
+		} 
 	}
 	
 
